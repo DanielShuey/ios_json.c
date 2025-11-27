@@ -1,64 +1,41 @@
 #include "ios_json.h"
 #include <Block.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static void parse_node(jnode *n, char **s);
-
-// clang-format off
-#define skip_cond(c) c==' '||c=='\t'||c =='\n'||c=='\r'||c ==','||c ==':'
-static inline void skip(char **s) { while (skip_cond(*s[0])) s[0]++; }
-// clang-format on
+static void          parse_node(jnode *n, char **s);
+static inline void   skip(char **s) { *s += strspn(*s, " \t\n\r,:"); }
+static inline double parse_double(char **s) { return strtod(*s, s); }
 
 static char *parse_str(char **s)
 {
-	char *str = s[0] + 1;
-	int   sz  = 0;
-	char *res;
-	while (str[sz] != '"')
-		(str[sz] == '\\' && str[sz + 1]) ? sz += 2 : sz++;
-	res = malloc(sz + 1);
-	memcpy(res, str, sz);
-	res[sz] = '\0';
-	s[0] += sz + 2;
-	return res;
+	char *start = ++(*s);
+	char *end   = strchr(start, '"');
+	*s          = end + 1;
+	return strndup(start, end - start);
 }
 
-static double parse_double(char **s) { return strtod(*s, s); }
-
-static void parse_arr(jnode *n, char **s)
+static void parse_obj(jnode *n, char **s, bool is_obj)
 {
-	n->len  = 0;
-	n->type = jtype_obj;
-	while (s[0]++, skip(s), *s[0] != ']') {
-		n->len++;
-		n->to.a = realloc(n->to.a, n->len * sizeof(jnode *));
-		n->to.a[n->len - 1] = malloc(sizeof(jnode));
-		parse_node(n->to.a[n->len - 1], s);
-	}
-}
-
-static void parse_obj(jnode *n, char **s)
-{
-	n->len  = 0;
-	n->type = jtype_obj;
+	n->len = 0;
 
 	n->get = (get_jnode)Block_copy(^jnode *(const char *key) {
 	  for (int i = 0; i < n->len; i++) {
-		  if (strcmp(n->to.a[i]->key, key) == 0) {
-			  return n->to.a[i];
+		  if (strcmp(n->to.o[i]->key, key) == 0) {
+			  return n->to.o[i];
 		  }
 	  }
 	  return NULL;
 	});
 
-	while (s[0]++, skip(s), *s[0] != '}') {
+	while (s[0]++, skip(s), *s[0] != (is_obj ? '}' : ']')) {
 		n->len++;
 		n->to.o   = realloc(n->to.o, n->len * sizeof(jnode *));
 		jnode *_n = malloc(sizeof(jnode));
-		_n->key   = parse_str(s);
-		skip(s);
+		if (is_obj) {
+			_n->key = parse_str(s);
+			skip(s);
+		}
 		parse_node(_n, s);
 		n->to.o[n->len - 1] = _n;
 	}
@@ -68,33 +45,26 @@ static void parse_obj(jnode *n, char **s)
 static void parse_node(jnode *n, char **s)
 {
 	switch (*s[0]) {
-	case '{':  parse_obj(n, s); break;
-	case '[':  parse_arr(n, s); break;
-	case '"':  n->to.s = parse_str(s);   
-		   n->len = strlen(n->to.s);
-		   n->type = jtype_str;
-		   break;
+	case '{':  case '[':  
+		   parse_obj(n, s, *s[0] == '{'); break;
+	case '"':  n->to.s = parse_str(s); n->len = strlen(n->to.s); break;
 	case 't':  s[0] += 4; n->to.b = true; break;
 	case 'f':  s[0] += 5; n->to.b = false; break;
 	case 'n':  s[0] += 4; break;
 	default:   n->to.n = parse_double(s); break;
 	}
 }
+// clang-format on
 
 __attribute__((overloadable)) void free(jnode *n)
 {
-	if (n->get) { Block_release(n->get); n->get = NULL; }
-
-	switch (n->type) {
-	case jtype_obj:
-		for (size_t i = 0; i < n->len; i++) free(n->to.a[i]);
-		free(n->to.a); break;
-	case jtype_str: free(n->to.s); break;
-	default: break;
-	}
-	free((void*)n);
+	if (n->get) Block_release(n->get);
+	for (size_t i = 0; i < n->len; ++i) free(n->to.o[i]);
+	free(n->to.o);
+	free(n->to.s);
+	free(n->key);
+	free((void *)n);
 }
-// clang-format on
 
 __attribute__((overloadable)) jnode *parse(const char *json)
 {

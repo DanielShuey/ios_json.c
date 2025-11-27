@@ -1,6 +1,5 @@
 #include "ios_json.h"
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 
 const char *json = "{"
