@@ -49,5 +49,21 @@ int main()
 	assert(n->get("array")->to.a[2]->to.b == false);
 	assert(strcmp(n->get("array")->to.a[4]->get("key")->to.s, "value") ==
 	       0);
+	assert(strcmp(n->get("object")->get("key")->to.s, "value") == 0);
+	assert(n->get("object")->get("nested_array")->to.a[0]->to.n == 1);
+	assert(strcmp(n->get("object")->get("nested_array")->to.a[1]->to.s,
+	              "two") == 0);
+	assert(n->get("object")->get("nested_array")->to.a[2]->to.b == false);
+	// assert(n->get("object")->get("nested_array")->to.a[3] == NULL);
+	assert(strcmp(n->get("object")
+	                  ->get("nested_array")
+	                  ->to.a[4]
+	                  ->get("key")
+	                  ->to.s,
+	              "value") == 0);
+	assert(
+	    strcmp(
+	        n->get("object")->get("nested_object")->get("nested_key")->to.s,
+	        "nested_value") == 0);
 	free((void *)n);
 }
