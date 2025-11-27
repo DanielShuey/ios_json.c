@@ -7,6 +7,13 @@ static void          parse_node(jnode *n, char **s);
 static inline void   skip(char **s) { *s += strspn(*s, " \t\n\r,:"); }
 static inline double parse_double(char **s) { return strtod(*s, s); }
 
+#define jnode_get(n)                                                           \
+	Block_copy(^jnode *(const char *k) {                                   \
+	  for (int i = 0; i < n->len; i++)                                     \
+		  if (!strcmp(n->to.o[i]->key, k)) return n->to.o[i];          \
+	  return NULL;                                                         \
+	})
+
 static char *parse_str(char **s)
 {
 	char *start = ++(*s);
@@ -17,27 +24,12 @@ static char *parse_str(char **s)
 
 static void parse_obj(jnode *n, char **s, bool is_obj)
 {
-	n->len = 0;
-
-	n->get = (get_jnode)Block_copy(^jnode *(const char *key) {
-	  for (int i = 0; i < n->len; i++) {
-		  if (strcmp(n->to.o[i]->key, key) == 0) {
-			  return n->to.o[i];
-		  }
-	  }
-	  return NULL;
-	});
-
-	while (s[0]++, skip(s), *s[0] != (is_obj ? '}' : ']')) {
-		n->len++;
-		n->to.o   = realloc(n->to.o, n->len * sizeof(jnode *));
-		jnode *_n = malloc(sizeof(jnode));
-		if (is_obj) {
-			_n->key = parse_str(s);
-			skip(s);
-		}
-		parse_node(_n, s);
-		n->to.o[n->len - 1] = _n;
+	n->get = jnode_get(n);
+	for (const char end = is_obj ? '}' : ']'; ++*s, skip(s), **s != end;) {
+		n->to.o      = realloc(n->to.o, (++n->len) * sizeof *n->to.o);
+		jnode *child = calloc(1, sizeof *child);
+		if (is_obj) child->key = parse_str(s), skip(s);
+		parse_node(n->to.o[n->len - 1] = child, s);
 	}
 }
 
@@ -54,17 +46,14 @@ static void parse_node(jnode *n, char **s)
 	default:   n->to.n = parse_double(s); break;
 	}
 }
-// clang-format on
 
 __attribute__((overloadable)) void free(jnode *n)
 {
 	if (n->get) Block_release(n->get);
 	for (size_t i = 0; i < n->len; ++i) free(n->to.o[i]);
-	free(n->to.o);
-	free(n->to.s);
-	free(n->key);
-	free((void *)n);
+	free(n->to.o); free(n->to.s); free(n->key); free((void *)n);
 }
+// clang-format on
 
 __attribute__((overloadable)) jnode *parse(const char *json)
 {
