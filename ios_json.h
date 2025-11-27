@@ -19,5 +19,5 @@ typedef struct jnode {
 		jnode **o;
 	} to;
 } jnode;
-__attribute__((overloadable)) void   json_free(jnode *n);
+__attribute__((overloadable)) void   free(jnode *n);
 __attribute__((overloadable)) jnode *parse(const char *json);

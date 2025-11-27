@@ -51,5 +51,5 @@ int main()
 	// assert(n->get(n, "array")->to.a[3] == NULL);
 	jnode *o = n->get(n, "array")->to.a[4];
 	assert(strcmp(o->get(o, "key")->to.s, "value") == 0);
-	json_free(n);
+	free((void *)n);
 }

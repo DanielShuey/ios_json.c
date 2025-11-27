@@ -86,16 +86,16 @@ static void parse_node(jnode *n, char **s)
 	}
 }
 
-__attribute__((overloadable)) void json_free(jnode *n)
+__attribute__((overloadable)) void free(jnode *n)
 {
 	switch (n->type) {
 	case jtype_obj:
-		for (size_t i = 0; i < n->len; i++) json_free(n->to.a[i]);
+		for (size_t i = 0; i < n->len; i++) free(n->to.a[i]);
 		free(n->to.a); break;
 	case jtype_str: free(n->to.s); break;
 	default: break;
 	}
-	free(n);
+	free((void*)n);
 }
 // clang-format on
 
