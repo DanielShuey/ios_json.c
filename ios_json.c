@@ -7,19 +7,14 @@ thread_local jnode *_curnode;
 
 static void parse_node(jnode *n, char **s);
 
-static inline void skip(char **s)
-{
-	char c;
-	while (c = *s[0], c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
-	                      c == ',' || c == ':') {
-		s[0]++;
-	}
-}
+// clang-format off
+#define skip_cond(c) c==' '||c=='\t'||c =='\n'||c=='\r'||c ==','||c ==':'
+static inline void skip(char **s) { while (skip_cond(*s[0])) s[0]++; }
+// clang-format on
 
 jnode *_json_get(jnode *n, const char *key)
 {
-	if (n == NULL)
-		n = _curnode;
+	if (n == NULL) n = _curnode;
 
 	for (int i = 0; i < n->len; i++) {
 		if (strcmp(n->to.a[i]->key, key) == 0) {
@@ -35,9 +30,8 @@ static char *parse_str(char **s)
 	char *str = s[0] + 1;
 	int   sz  = 0;
 	char *res;
-	while (str[sz] != '"') {
+	while (str[sz] != '"')
 		(str[sz] == '\\' && str[sz + 1]) ? sz += 2 : sz++;
-	}
 	res = malloc(sz + 1);
 	memcpy(res, str, sz);
 	res[sz] = '\0';
@@ -81,15 +75,14 @@ static void parse_node(jnode *n, char **s)
 	switch (*s[0]) {
 	case '{':  parse_obj(n, s); break;
 	case '[':  parse_arr(n, s); break;
-	case '"': 
-			n->to.s = parse_str(s);   
-			n->len = strlen(n->to.s);
-			n->type = jtype_str;
-			break;
+	case '"':  n->to.s = parse_str(s);   
+		   n->len = strlen(n->to.s);
+		   n->type = jtype_str;
+		   break;
 	case 't':  s[0] += 4; n->to.b = true; break;
 	case 'f':  s[0] += 5; n->to.b = false; break;
 	case 'n':  s[0] += 4; break;
-	default: n->to.n = parse_double(s); break;
+	default:   n->to.n = parse_double(s); break;
 	}
 }
 
@@ -98,8 +91,7 @@ __attribute__((overloadable)) void json_free(jnode *n)
 	switch (n->type) {
 	case jtype_obj:
 		for (size_t i = 0; i < n->len; i++) json_free(n->to.a[i]);
-		free(n->to.a); 
-		break;
+		free(n->to.a); break;
 	case jtype_str: free(n->to.s); break;
 	default: break;
 	}
