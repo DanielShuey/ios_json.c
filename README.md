@@ -17,5 +17,6 @@ Example usage
  n->get("int")->to.n; => 420
  n->get("float")->to.n; => 6.9
  n->get("bool")->to.b; => true
+ n->get("object")->get("key")->to.s; => "value"
  n->get("array")->to.a[4]->get("key")->to.s; => "value"
 ```
