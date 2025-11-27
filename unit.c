@@ -39,17 +39,16 @@ const char *json = "{"
 int main()
 {
 	jnode *n = parse(json);
-	assert(strcmp(n->get(n, "string")->to.s, "Hello, World!") == 0);
-	assert(n->get(n, "int")->to.n == 4);
-	assert(n->get(n, "float")->to.n == 6.9);
-	assert(n->get(n, "true")->to.b == true);
-	assert(n->get(n, "false")->to.b == false);
-	// assert(n->get(n, "null_value") == NULL);
-	assert(n->get(n, "array")->to.a[0]->to.n == 1);
-	assert(strcmp(n->get(n, "array")->to.a[1]->to.s, "two") == 0);
-	assert(n->get(n, "array")->to.a[2]->to.b == false);
-	// assert(n->get(n, "array")->to.a[3] == NULL);
-	jnode *o = n->get(n, "array")->to.a[4];
-	assert(strcmp(o->get(o, "key")->to.s, "value") == 0);
+	assert(strcmp(n->get("string")->to.s, "Hello, World!") == 0);
+	assert(n->get("int")->to.n == 4);
+	assert(n->get("float")->to.n == 6.9);
+	assert(n->get("true")->to.b == true);
+	assert(n->get("false")->to.b == false);
+	// assert(n->get("null_value") == NULL);
+	assert(n->get("array")->to.a[0]->to.n == 1);
+	assert(strcmp(n->get("array")->to.a[1]->to.s, "two") == 0);
+	assert(n->get("array")->to.a[2]->to.b == false);
+	assert(strcmp(n->get("array")->to.a[4]->get("key")->to.s, "value") ==
+	       0);
 	free((void *)n);
 }

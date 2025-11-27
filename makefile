@@ -1,6 +1,6 @@
 .PHONY: debug release test clean
 
-FDEBUG=-std=c23 -Wall -Og -fcolor-diagnostics
+FDEBUG=-std=c23 -Wall -Og -fcolor-diagnostics -fblocks
 
 debug:
 	@mkdir -p build/debug
@@ -11,7 +11,7 @@ debug:
 release:
 	@mkdir -p build/release
 	@printf "→ Building @ %s\n" build/release
-	$(CC) ios_json.c -c -std=c23 -O3 -march=native
+	$(CC) ios_json.c -c -std=c23 -O3 -march=native -fblocks
 	@mv ios_json.o build/release/ios_json.o
 
 unit:

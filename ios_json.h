@@ -1,16 +1,19 @@
 #pragma once
+#include <Block.h>
 #include <stdbool.h>
+
 typedef enum jtype {
 	jtype_null,
 	jtype_obj,
 	jtype_str,
 } jtype;
 typedef struct jnode jnode;
+typedef jnode * (^get_jnode)(const char *key);
 typedef struct jnode {
-	char *key;
-	jtype type;
-	int   len;
-	jnode *(*get)(jnode *n, const char *key);
+	char     *key;
+	jtype     type;
+	int       len;
+	get_jnode get;
 	union {
 		bool    b;
 		double  n;

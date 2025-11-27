@@ -1,9 +1,8 @@
 #include "ios_json.h"
+#include <Block.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-thread_local jnode *_curnode;
 
 static void parse_node(jnode *n, char **s);
 
@@ -11,19 +10,6 @@ static void parse_node(jnode *n, char **s);
 #define skip_cond(c) c==' '||c=='\t'||c =='\n'||c=='\r'||c ==','||c ==':'
 static inline void skip(char **s) { while (skip_cond(*s[0])) s[0]++; }
 // clang-format on
-
-jnode *_json_get(jnode *n, const char *key)
-{
-	if (n == NULL) n = _curnode;
-
-	for (int i = 0; i < n->len; i++) {
-		if (strcmp(n->to.a[i]->key, key) == 0) {
-			_curnode = n->to.a[i];
-			return n->to.a[i];
-		}
-	}
-	return NULL;
-}
 
 static char *parse_str(char **s)
 {
@@ -57,7 +43,16 @@ static void parse_obj(jnode *n, char **s)
 {
 	n->len  = 0;
 	n->type = jtype_obj;
-	n->get  = &_json_get;
+
+	n->get = (get_jnode)Block_copy(^jnode *(const char *key) {
+	  for (int i = 0; i < n->len; i++) {
+		  if (strcmp(n->to.a[i]->key, key) == 0) {
+			  return n->to.a[i];
+		  }
+	  }
+	  return NULL;
+	});
+
 	while (s[0]++, skip(s), *s[0] != '}') {
 		n->len++;
 		n->to.o   = realloc(n->to.o, n->len * sizeof(jnode *));
@@ -88,6 +83,8 @@ static void parse_node(jnode *n, char **s)
 
 __attribute__((overloadable)) void free(jnode *n)
 {
+	if (n->get) { Block_release(n->get); n->get = NULL; }
+
 	switch (n->type) {
 	case jtype_obj:
 		for (size_t i = 0; i < n->len; i++) free(n->to.a[i]);
